@@ -1,0 +1,225 @@
+#!/bin/bash
+set -o errexit -o nounset -o pipefail
+export LC_ALL=C
+function -h {
+cat <<USAGE
+ USAGE: `basename $0`
+
+ Creates debian package for uwsgi2
+USAGE
+}; function --help { -h ;}
+
+this="$(cd "$(dirname "$0")" && pwd -P)"
+name="uwsgi"
+patch=""
+version=""
+
+function main {
+  pwd="$(pwd -P)"
+  while [[ $# -gt 0 ]]
+  do
+    case "$1" in                                      # Munging globals, beware
+      --version)                version="$2"    ; shift 2 ;;
+      --patch)                  patch="$2" ; shift 2 ;;
+      --use-sudo)               use_sudo=true; shift 1 ;;
+      *)                        err 'Argument error. Please see help.' ;;
+    esac
+  done
+
+  msg "building ${name} version: ${version}"
+  cleanup
+  checkout
+  build
+  installation
+  pkg
+  finish
+  msg "packaging finished!"
+}
+
+function cleanup {
+  rm -f *.deb
+  rm -rf _release
+  rm -rf lib/ classes/
+  rm -rf target
+  rm -rf uwsgi-*
+}
+
+function checkout {
+  package="uwsgi-${version}"
+  if [ ! -d "${package}" ]; then
+      local mirror="http://projects.unbit.it/downloads"
+      if [ -z "$version" ];then
+        version="latest"
+      fi
+      local file="uwsgi-${version}.tar.gz"
+      local url="${mirror}/${file}"
+      msg "fetching ${url}"
+      curl -LO ${url}
+      tar xvf $file
+      if [ "$version" == "latest" ];then
+        version=$(ls $pwd | grep "uwsgi-" | sed -nre 's/^[^0-9]*(([0-9]+\.)*[0-9]+).*/\1/p')
+      fi
+      package="uwsgi-${version}"
+      msg "$name version: ${version}"
+      rm -f $file
+  fi
+}
+
+function build {(
+  cd uwsgi*
+  # build core
+  python uwsgiconfig.py --build core
+  python uwsgiconfig.py --plugin plugins/python core
+  python uwsgiconfig.py --plugin plugins/carbon core
+)}
+
+function installation {(
+  DEBDIR="${pwd}/deb"
+  mkdir -p "${pwd}/deb"
+  cd "${pwd}/deb"
+  local build_dir="${pwd}/$package"
+  mkdir -p "var/log/uwsgi/app"
+  mkdir -p "etc/default"
+  mkdir -p "etc/uwsgi/apps-available"
+  mkdir -p "etc/uwsgi/apps-enabled"
+
+  local confdir="usr/share/uwsgi"
+  local plugindir="usr/lib/uwsgi/plugins"
+  mkdir -p "$confdir/init"
+  mkdir -p "$confdir/conf"
+  mkdir -p "$plugindir"
+  cp "${pwd}/debian/uwsgi/default.ini" "$confdir/conf/default.ini"
+  cp "${pwd}/debian/uwsgi/do_command" "$confdir/init"
+  cp "${pwd}/debian/uwsgi/snippets" "$confdir/init"
+  cp "${pwd}/debian/uwsgi/specific_daemon" "$confdir/init"
+  # bin scripts
+  mkdir -p "usr/bin"
+  cp "${build_dir}/uwsgi" "usr/bin"
+  cp "${pwd}/debian/default" ${DEBDIR}/etc/default/uwsgi
+
+  # copy all plugins
+  for file in ${build_dir}/*_plugin.so ; do cp "$file" "$plugindir/"; done
+
+  # other configs
+  init_scripts "$linux"
+  logrotate
+  cd ..
+)}
+
+function pkg {
+  cd $pwd
+  local version="${version}${patch}"
+  local opts=()
+  pkg="$name"_"$version"_"$arch".deb
+  opts=( -t deb
+         -n "$name"
+         -v "$version"
+         --description "uWSGi - application server"
+         --url=https://uwsgi-docs.readthedocs.org/en/latest/
+         --category misc
+         --vendor ""
+         --license "GPL-2+"
+         -m tomas.barton@modgen.net
+         --prefix=/
+         --config-files "/etc/default/${name}"
+         --config-files "/etc/logrotate.d/${name}"
+         -s dir )
+  ( cd deb && "$gem_bin"/fpm "${opts[@]}" -p "$pwd"/"$pkg" -- . )
+}
+
+function init_scripts {
+  case "$1" in
+    debian/*) mkdir -p ${DEBDIR}/etc/init.d
+              cp -p "$pwd"/debian/init.d "${DEBDIR}/etc/init.d/${name}"
+       ;;
+    ubuntu/*) mkdir -p ${DEBDIR}/etc/init.d
+              #no upstart script yet
+              #cp "$pwd"/debian/ubuntu.upstart "${DEBDIR}/etc/init/${name}.conf"
+              cp -p "$pwd"/debian/init.d "${DEBDIR}/etc/init.d/${name}"
+       ;;
+    *) err "Not sure how to make init scripts for: $1" ;;
+  esac
+}
+
+function logrotate {
+  case "$linux" in
+    ubuntu/*|debian/*)
+      mkdir -p etc/logrotate.d
+      cp "$pwd"/debian/logrotate etc/logrotate.d/${name}
+    ;;
+    centos/*|redhat/*)
+      err "not implemented yet"
+    ;;
+    *) err "Not sure how to configure logrotate for: $linux" ;;
+  esac
+}
+
+
+function finish {
+  echo "removing deb directory"
+  #remove build directory
+  rm -rf "$pwd/deb"
+}
+
+function get_system_info {
+  linux="$(lsb_release_tag)"            # <distro>/<version>, like ubuntu/12.10
+  arch="$(architecture)"          # In the format used to label distro packages
+  gem_bin="$(find_gem_bin)"                          # Might not be on the PATH
+  codename="$(get_codename)"
+}
+
+function lsb_release_tag {
+  if [ -f /etc/lsb-release ]; then
+    lsb_release --id --release | cut -d: -f2 | tr A-Z a-z | xargs | tr ' ' '/'
+  else
+    local version=$(awk '{print $3}' /etc/*-release | head -n1)
+    local dist=$(cat /etc/*-release |grep ^ID= | sed 's/ID=//')
+    echo "${dist}/${version}"
+  fi
+}
+
+function architecture {
+  case "$linux" in
+    ubuntu/*|debian/*) dpkg-architecture -qDEB_BUILD_ARCH ;;
+    centos/*|redhat/*) arch ;;
+    *)                 err "Not sure how to determine arch for: $linux" ;;
+  esac
+}
+
+function find_gem_bin {
+  gem env | sed -n '/^ *- EXECUTABLE DIRECTORY: */ { s/// ; p }'
+}
+
+function get_codename {
+  case "$linux" in
+    ubuntu/*|debian/*)
+      if [ -f /etc/lsb-release ]; then
+        lsb_release -c | cut -d: -f2 | tr A-Z a-z | xargs | tr ' ' '/'
+      else
+        cat /etc/*-release | grep ^VERSION= | sed 's/VERSION=//' | cut -d "(" -f2 | cut -d ")" -f1
+      fi
+    ;;
+    centos/*|redhat/*)
+      err "not implemented yet"
+    ;;
+    *)                 err "Not sure how to get_codename for: $linux" ;;
+  esac
+}
+
+function msg { out "$*" >&2 ;}
+function err { local x=$? ; msg "$*" ; return $(( $x == 0 ? 1 : $x )) ;}
+function out { printf '%s\n' "$*" ;}
+
+
+if [[ ${1:-} ]] && declare -F | cut -d' ' -f3 | fgrep -qx -- "${1:-}"
+then
+  case "$1" in
+    -h|--help|go) : ;;
+    *) get_system_info ;;
+  esac
+  "$@"
+else
+  get_system_info
+  main "$@"
+fi
+

@@ -1,0 +1,6 @@
+*.deb
+deb/*
+*.log
+*.o
+*.tar.gz
+uwsgi-*
