@@ -13,6 +13,12 @@ specific version
 ./build_uwsgi --version 2.0.7
 ```
 
+## flags
+
+  * `version` - uwsgi version
+  * `patch` - fix version which is appended to real package version, e.g.: `--patch -1` will produce package version `2.0.7-1`
+  * `python` - specify Python version which is used for building
+
 ## plugins
 
 The main uwsgi building logic is around line 72:
