@@ -31,6 +31,15 @@ The main uwsgi building logic is around line 72:
 
 ```
 
+## requirements
+
+Package is build using FPM
+
+  - `apt-get install build-essential`
+  - some ruby version, e.g. `apt-get install ruby1.9.3`
+  - `gem install fpm`
+  - `apt-get install python3` if you want python3 support
+
 ## TODO
 
   * allow easier uwsgi customization
