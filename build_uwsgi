@@ -22,6 +22,7 @@ function main {
     case "$1" in                                      # Munging globals, beware
       --version)                version="$2"    ; shift 2 ;;
       --patch)                  patch="$2" ; shift 2 ;;
+      --python)                 python="$2" ; shift 2 ;;
       --use-sudo)               use_sudo=true; shift 1 ;;
       *)                        err 'Argument error. Please see help.' ;;
     esac
