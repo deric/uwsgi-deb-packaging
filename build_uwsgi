@@ -13,6 +13,7 @@ this="$(cd "$(dirname "$0")" && pwd -P)"
 name="uwsgi"
 patch=""
 version=""
+python="python3.2"
 
 function main {
   pwd="$(pwd -P)"
@@ -68,9 +69,10 @@ function checkout {
 function build {(
   cd uwsgi*
   # build core
-  python uwsgiconfig.py --build core
-  python uwsgiconfig.py --plugin plugins/python core
-  python uwsgiconfig.py --plugin plugins/carbon core
+  $python uwsgiconfig.py --build core
+  $python uwsgiconfig.py --build package
+  $python uwsgiconfig.py --plugin plugins/python core python32
+  $python uwsgiconfig.py --plugin plugins/carbon core
 )}
 
 function installation {(
@@ -84,7 +86,7 @@ function installation {(
   mkdir -p "etc/uwsgi/apps-enabled"
 
   local confdir="usr/share/uwsgi"
-  local plugindir="usr/lib/uwsgi/plugins"
+  local plugindir="usr/lib/uwsgi"
   mkdir -p "$confdir/init"
   mkdir -p "$confdir/conf"
   mkdir -p "$plugindir"
