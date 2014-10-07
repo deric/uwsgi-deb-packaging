@@ -46,3 +46,32 @@ Package is build using FPM
 ## TODO
 
   * allow easier uwsgi customization
+
+
+## uwsgi configuration
+
+uswgi configuration is detected based on libraries installed on your system, make sure that the config matches your expectations:
+
+```
+################# uWSGI configuration #################
+
+pcre = True
+kernel = Linux
+malloc = libc
+execinfo = False
+ifaddrs = True
+ssl = True
+zlib = True
+locking = pthread_mutex
+plugin_dir = /usr/lib/uwsgi
+timer = timerfd
+yaml = embedded
+json = jansson
+filemonitor = inotify
+routing = True
+debug = False
+capabilities = False
+xml = expat
+event = epoll
+
+```
