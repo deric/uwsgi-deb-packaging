@@ -74,6 +74,7 @@ function build {(
   $python uwsgiconfig.py --build package
   $python uwsgiconfig.py --plugin plugins/python core python32
   $python uwsgiconfig.py --plugin plugins/carbon core
+  $python uwsgiconfig.py --plugin plugins/http core
 )}
 
 function installation {(
