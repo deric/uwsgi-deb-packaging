@@ -69,10 +69,11 @@ function checkout {
 
 function build {(
   cd uwsgi*
+  py_version="${python//.}"
   # build core
   $python uwsgiconfig.py --build core
   $python uwsgiconfig.py --build package
-  $python uwsgiconfig.py --plugin plugins/python core python32
+  $python uwsgiconfig.py --plugin plugins/python core $py_version
   $python uwsgiconfig.py --plugin plugins/carbon core
   $python uwsgiconfig.py --plugin plugins/http core
 )}
