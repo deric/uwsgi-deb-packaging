@@ -44,7 +44,7 @@ Package is build using FPM
   - `apt-get install python3 python3-dev` if you want python3 support
   - `apt-get install libpcre3 libpcre3-dev` - for perl regexp support
   - `apt-get install libssl-dev` - required for SSL support
-  - `apt-get install libjansson` - JSON support
+  - `apt-get install libjansson-dev` - JSON support
 
 ## TODO
 
