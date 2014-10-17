@@ -15,6 +15,10 @@ usage:
   ```
   ./build_uwsgi --version 2.0.7 --python "python3.4"
   ```
+  * for Python 2.7 just use:
+  ```
+  ./build_uwsgi --version 2.0.7 --python "python"
+  ```
 
 ## flags
 

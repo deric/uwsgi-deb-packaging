@@ -69,6 +69,7 @@ function checkout {
 
 function build {(
   cd uwsgi*
+  # remove dot from version string
   py_version="${python//.}"
   # build core
   $python uwsgiconfig.py --build core
@@ -114,6 +115,14 @@ function installation {(
 function pkg {
   cd $pwd
   local version="${version}${patch}"
+  # check if we're building uwsgi with JSON support
+  dpkg-query -W -f='${Status} ${Version}\n' libjansson-dev
+  local ret=$?
+  if [ $ret -eq 0 ]; then
+    json="-d libjansson4"
+  else
+    json=""
+  fi
   local opts=()
   pkg="$name"_"$version"_"$arch".deb
   opts=( -t deb
@@ -122,6 +131,7 @@ function pkg {
          --description "uWSGi - application server"
          --url=https://uwsgi-docs.readthedocs.org/en/latest/
          --category misc
+         -d "${python}-dev"
          --vendor ""
          --license "GPL-2+"
          -m tomas.barton@modgen.net
