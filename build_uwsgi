@@ -20,9 +20,10 @@ function main {
   while [[ $# -gt 0 ]]
   do
     case "$1" in                                      # Munging globals, beware
-      --version)                version="$2"    ; shift 2 ;;
-      --patch)                  patch="$2" ; shift 2 ;;
-      --python)                 python="$2" ; shift 2 ;;
+      --version)                version="$2" ; shift 2 ;;
+      --patch)                  patch="$2"   ; shift 2 ;;
+      --python)                 python="$2"  ; shift 2 ;;
+      --name)                   name="$2"    ; shift 2 ;;
       --use-sudo)               use_sudo=true; shift 1 ;;
       *)                        err 'Argument error. Please see help.' ;;
     esac
@@ -136,8 +137,8 @@ function pkg {
          --license "GPL-2+"
          -m tomas.barton@modgen.net
          --prefix=/
-         --config-files "/etc/default/${name}"
-         --config-files "/etc/logrotate.d/${name}"
+         --config-files "/etc/default/uwsgi"
+         --config-files "/etc/logrotate.d/uwsgi"
          -s dir )
   ( cd deb && "$gem_bin"/fpm "${opts[@]}" -p "$pwd"/"$pkg" -- . )
 }
@@ -145,12 +146,12 @@ function pkg {
 function init_scripts {
   case "$1" in
     debian/*) mkdir -p ${DEBDIR}/etc/init.d
-              cp -p "$pwd"/debian/init.d "${DEBDIR}/etc/init.d/${name}"
+              cp -p "$pwd"/debian/init.d "${DEBDIR}/etc/init.d/uwsgi"
        ;;
     ubuntu/*) mkdir -p ${DEBDIR}/etc/init.d
               #no upstart script yet
               #cp "$pwd"/debian/ubuntu.upstart "${DEBDIR}/etc/init/${name}.conf"
-              cp -p "$pwd"/debian/init.d "${DEBDIR}/etc/init.d/${name}"
+              cp -p "$pwd"/debian/init.d "${DEBDIR}/etc/init.d/uwsgi"
        ;;
     *) err "Not sure how to make init scripts for: $1" ;;
   esac
@@ -160,7 +161,7 @@ function logrotate {
   case "$linux" in
     ubuntu/*|debian/*)
       mkdir -p etc/logrotate.d
-      cp "$pwd"/debian/logrotate etc/logrotate.d/${name}
+      cp "$pwd"/debian/logrotate etc/logrotate.d/uwsgi
     ;;
     centos/*|redhat/*)
       err "not implemented yet"

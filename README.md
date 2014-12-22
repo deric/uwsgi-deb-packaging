@@ -82,3 +82,12 @@ xml = expat
 event = epoll
 
 ```
+
+## Pyenv
+
+When using Python from `pyenv` make sure you've build it with `--enable-shared` flag.
+
+```
+$ env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install 3.4.2
+$ pyenv global 3.4.2
+```
