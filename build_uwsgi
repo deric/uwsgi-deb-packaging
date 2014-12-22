@@ -132,7 +132,6 @@ function pkg {
          --description "uWSGi - application server"
          --url=https://uwsgi-docs.readthedocs.org/en/latest/
          --category misc
-         -d "${python}-dev"
          --vendor ""
          --license "GPL-2+"
          -m tomas.barton@modgen.net
@@ -140,6 +139,14 @@ function pkg {
          --config-files "/etc/default/uwsgi"
          --config-files "/etc/logrotate.d/uwsgi"
          -s dir )
+  if [[ $(check_pkg "${python}-dev") -eq 1 ]];then
+    opts+=( -d "${python}-dev" )
+  fi
+
+  if [[ $(check_pkg "libjansson-dev") -eq 1 ]];then
+    opts+=( -d "libjansson-dev" )
+  fi
+
   ( cd deb && "$gem_bin"/fpm "${opts[@]}" -p "$pwd"/"$pkg" -- . )
 }
 
@@ -170,6 +177,19 @@ function logrotate {
   esac
 }
 
+function check_pkg {
+  local ret=-1
+  case "$linux" in
+    ubuntu/*|debian/*)
+     ret=$(dpkg --get-selections $1 | grep "install" | wc -l)
+    ;;
+    centos/*|redhat/*)
+      err "not implemented yet"
+    ;;
+    *) err "Not sure how to configure logrotate for: $linux" ;;
+  esac
+  echo $ret
+}
 
 function finish {
   echo "removing deb directory"
